@@ -36,20 +36,31 @@ function mint_misc_pages(array &$pages): void
             if ($cooldownEndDate <= \TIME_NOW) {
                 \mint\modules\loot\setUserLastLootDate($mybb->user['uid'], \TIME_NOW);
 
+                $result = true;
+                $newItems = [];
+
                 $userGroupIds = array_map('intval', explode(',', $mybb->user['additionalgroups']));
                 $userGroupIds[] = $mybb->user['usergroup'];
 
-                $itemTypeIds = \mint\modules\loot\getLootItemIdsByUsergroupIds($userGroupIds);
+                $itemTypeIds = \mint\modules\loot\getLootItemTypeIdsByUsergroupIds($userGroupIds);
 
-                $result = true;
+                if ($itemTypeIds) {
+                    $itemTypeData = \mint\getItemTypesWithDetails('WHERE t1.id IN (' . \mint\getIntegerCsv($itemTypeIds) . ')');
 
-                foreach ($itemTypeIds as $itemTypeId) {
-                    $result &= \mint\createItemsWithTerminationPoint(
-                        $itemTypeId,
-                        1,
-                        $mybb->user['uid'],
-                        'loot'
-                    );
+                    foreach ($itemTypeIds as $itemTypeId) {
+                        if (isset($itemTypeData[$itemTypeId])) {
+                            $newItems[] = $itemTypeData[$itemTypeId];
+
+                            $result &= \mint\createItemsWithTerminationPoint(
+                                $itemTypeId,
+                                1,
+                                $mybb->user['uid'],
+                                'loot'
+                            );
+                        } else {
+                            $result &= false;
+                        }
+                    }
                 }
 
                 $messages .= \mint\getRenderedMessage(
@@ -60,9 +71,7 @@ function mint_misc_pages(array &$pages): void
                     'success'
                 );
 
-                $content .= \mint\getRenderedInventory(
-                    \mint\getUserItemsDetailsByItemTypeAndResolvedAmount(array_count_values($itemTypeIds), $mybb->user['uid'])
-                );
+                $content .= \mint\getRenderedInventory($newItems);
 
                 if (!$result) {
                     $content .= \mint\getRenderedMessage($lang->mint_loot_errors_encountered);

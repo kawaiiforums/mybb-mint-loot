@@ -56,7 +56,7 @@ function getLootItemsByUsergroupIds(array $usergroupIds): array
     return $applicableLootItems;
 }
 
-function getLootItemIdsByUsergroupIds(array $usergroupIds): array
+function getLootItemTypeIdsByUsergroupIds(array $usergroupIds): array
 {
     $itemTypeIds = [];
 
