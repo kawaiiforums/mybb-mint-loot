@@ -51,7 +51,7 @@ function mint_admin_config_mint_begin(): void
     global $mybb, $db, $cache, $lang;
 
     if ($mybb->input['action'] == 'loot_items') {
-        $itemTypes = \mint\queryResultAsArray(ItemTypes::with($db)->get(), 'id', 'title');
+        $itemTypes = \mint\queryResultAsArray(ItemTypes::with($db)->get(), 'id');
 
         $controller = new AcpEntityManagementController('loot_items', LootItems::class);
 
@@ -61,7 +61,18 @@ function mint_admin_config_mint_begin(): void
                 'formElement' => function (\Form $form, array $entity) use ($itemTypes) {
                     return $form->generate_select_box(
                         'item_type_id',
-                        $itemTypes,
+                        array_map(function (array $itemType): string {
+                            $value = \htmlspecialchars_uni($itemType['title']);
+                            $value .= ' (#' . (int)$itemType['id'];
+
+                            if (!empty($itemType['name'])) {
+                                $value .= ', ' . \htmlspecialchars_uni($itemType['name']);
+                            }
+
+                            $value .= ')';
+
+                            return $value;
+                        }, $itemTypes),
                         $entity['item_type_id'] ?? 0
                     );
                 },
@@ -78,6 +89,9 @@ function mint_admin_config_mint_begin(): void
             'item_type' => [
                 'customizable' => false,
                 'dataColumn' => 'item_type_title',
+                'presenter' => function (?string $value, array $entity) {
+                    return \htmlspecialchars_uni($value) . ' (#' . (int)$entity['item_type_id'] . ')';
+                },
             ],
             'probability' => [
                 'formElement' => function (\Form $form, array $entity) {
